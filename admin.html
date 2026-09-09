@@ -5,25 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin - Arşiv Ekle</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; background: #f4f4f9; color: #333; }
-    .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    .form-group { margin-bottom: 15px; }
-    label { display: block; font-weight: bold; margin-bottom: 5px; }
-    input, select, button { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; font-size: 1rem; }
-    button { background: #28a745; color: white; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; }
-    button:disabled { background: #888; cursor: not-allowed; }
-    #status { margin-top: 15px; padding: 12px; border-radius: 5px; display: none; font-weight: bold; word-break: break-word; }
-    .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-    .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-    .info { background: #e2e3e5; color: #383d41; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; background: #0f0f0f; color: #e0e0e0; }
+    .card { background: #1a1a1a; padding: 25px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.5); border: 1px solid rgba(255, 215, 0, 0.2); }
+    h2 { color: #ffd700; margin-bottom: 20px; text-align: center; }
+    .form-group { margin-bottom: 18px; }
+    label { display: block; font-weight: bold; margin-bottom: 8px; color: #d4d4d4; }
+    input, select, button { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,215,0,0.2); background: #2a2a2a; color: #fff; box-sizing: border-box; font-size: 1rem; }
+    input:focus, select:focus { border-color: #ffd700; outline: none; }
+    button { background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); color: #000; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; transition: transform 0.2s; }
+    button:active { transform: scale(0.98); }
+    button:disabled { background: #555; color: #888; cursor: not-allowed; }
+    #status { margin-top: 15px; padding: 12px; border-radius: 8px; display: none; font-weight: bold; word-break: break-word; text-align: center; }
+    .success { background: rgba(40, 167, 69, 0.2); color: #28a745; border: 1px solid #28a745; }
+    .error { background: rgba(220, 53, 69, 0.2); color: #dc3545; border: 1px solid #dc3545; }
+    .info { background: rgba(0, 123, 255, 0.2); color: #17a2b8; border: 1px solid #17a2b8; }
   </style>
 </head>
 <body>
 
 <div class="card">
-  <h2>Yeni Arşiv Ekle (Ajouter une Archive)</h2>
+  <h2>Yeni Arşiv Ekle</h2>
 
-  <!-- CHAMP POUR LE TOKEN SISI MANUEL -->
   <div class="form-group">
     <label>GitHub Personal Access Token :</label>
     <input type="password" id="tokenInput" placeholder="ghp_xxxxxxxxxxxx">
@@ -37,17 +39,22 @@
   <div class="form-group">
     <label>Kategori Seç (Onglet) :</label>
     <select id="tabSelect" onchange="toggleNewTabInput(this.value)">
-      <option value="__NEW__">+ Yeni Kategori Oluştur...</option>
+      <!-- Les 3 onglets par défaut du site -->
+      <option value="Sultan Vahidettin Gerçekleri">Sultan Vahidettin Gerçekleri</option>
+      <option value="Kemalist Rejimi Gerçekleri">Kemalist Rejimi Gerçekleri</option>
+      <option value="Sultan 2. Abdülhamid Gerçekleri">Sultan 2. Abdülhamid Gerçekleri</option>
+      <option value="__NEW__">+ Yeni Kategori Oluştur... (Créer nouvel onglet)</option>
     </select>
   </div>
 
-  <div class="form-group" id="newTabGroup">
+  <div class="form-group" id="newTabGroup" style="display: none;">
     <label>Yeni Kategori Adı (Nom du nouvel onglet) :</label>
-    <input type="text" id="newTabInput" placeholder="Ex: Vahidettin">
+    <input type="text" id="newTabInput" placeholder="Ex: Osmanlı Arşivleri">
   </div>
 
   <div class="form-group">
-    <label>Fotoğraf Seç (Image) :</label>
+    <label>Fotoğraf Seç (Image / Screenshot) :</label>
+    <!-- accept="image/*" permet de capturer n'importe quel format (PNG, JPG, Screenshots, etc.) -->
     <input type="file" id="imageInput" accept="image/*">
   </div>
 
@@ -61,13 +68,13 @@
   const REPO = "Tarih";
   const JSON_PATH = "data.json";
 
-  // Charger automatiquement le token enregistré dans votre navigateur
+  // Sauvegarde automatique du Token dans le navigateur
   document.getElementById('tokenInput').value = localStorage.getItem('my_gh_token') || '';
   document.getElementById('tokenInput').addEventListener('input', (e) => {
     localStorage.setItem('my_gh_token', e.target.value.trim());
   });
 
-  // Fonctions pour gérer le codage UTF-8 sécurisé (sans risque de TypeError)
+  // UTF-8 sécurisé
   function utf8_to_b64(str) {
     return window.btoa(unescape(encodeURIComponent(str)));
   }
@@ -76,7 +83,7 @@
     return decodeURIComponent(escape(window.atob(str)));
   }
 
-  // Charger les onglets existants depuis GitHub
+  // Charger d'éventuels onglets personnalisés créés précédemment
   async function loadExistingTabs() {
     try {
       const res = await fetch(`https://raw.githubusercontent.com/${USERNAME}/${REPO}/main/${JSON_PATH}?t=${Date.now()}`);
@@ -85,20 +92,24 @@
       const data = await res.json();
       if (!Array.isArray(data)) return;
       
-      const tabs = [...new Set(data.map(item => item.onglet).filter(Boolean))];
-      const select = document.getElementById('tabSelect');
-      
-      select.innerHTML = '<option value="__NEW__">+ Yeni Kategori Oluştur...</option>';
-      tabs.forEach(tab => {
-        select.innerHTML += `<option value="${tab}">${tab}</option>`;
-      });
+      const defaultTabs = [
+        "Sultan Vahidettin Gerçekleri",
+        "Kemalist Rejimi Gerçekleri",
+        "Sultan 2. Abdülhamid Gerçekleri"
+      ];
 
-      if (tabs.length > 0) {
-        select.value = tabs[0];
-        toggleNewTabInput(tabs[0]);
-      }
+      const customTabs = [...new Set(data.map(item => item.onglet).filter(o => o && !defaultTabs.includes(o)))];
+      const select = document.getElementById('tabSelect');
+
+      // Ajouter les onglets créés plus tard
+      customTabs.forEach(tab => {
+        const opt = document.createElement('option');
+        opt.value = tab;
+        opt.innerText = tab;
+        select.insertBefore(opt, select.querySelector('option[value="__NEW__"]'));
+      });
     } catch (e) {
-      console.log("data.json henüz yok veya okunamadı:", e);
+      console.log("Aucun onglet supplémentaire trouvé.");
     }
   }
 
@@ -126,23 +137,22 @@
     const onglet = (selectValue === '__NEW__') ? newTab : selectValue;
 
     if (!token) {
-      showStatus("Lütfen GitHub Tokeninizi girin! (Veuillez entrer votre token)", "error");
+      showStatus("Lütfen GitHub Tokeninizi girin! (Token manquant)", "error");
       return;
     }
 
     if (!title || !onglet || !imageFile) {
-      showStatus("Lütfen tüm alanları doldurun! (Veuillez remplir tous les champs)", "error");
+      showStatus("Lütfen tüm alanları doldurun! (Veuillez tout remplir)", "error");
       return;
     }
 
     submitBtn.disabled = true;
-    showStatus("Fotoğraf dönüştürülüyor ve GitHub'a yükleniyor...", "info");
+    showStatus("Fotoğraf işleniyor ve GitHub'a yükleniyor...", "info");
 
     try {
-      // 1. Image vers Base64
+      // Conversion n'importe quel format (Screenshots y compris) en Base64
       const imageBase64 = await fileToBase64(imageFile);
 
-      // 2. Récupérer le data.json actuel via l'API GitHub
       const apiUrl = `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${JSON_PATH}`;
       
       const getRes = await fetch(apiUrl, {
@@ -158,10 +168,9 @@
         const decodedContent = b64_to_utf8(fileInfo.content.replace(/\n/g, ''));
         currentData = JSON.parse(decodedContent);
       } else if (getRes.status === 401) {
-        throw new Error("Bad credentials: Token geçersiz veya yetkisiz.");
+        throw new Error("Bad credentials: Token geçersiz.");
       }
 
-      // 3. Ajouter le nouvel élément
       const newItem = {
         id: Date.now(),
         titre: title,
@@ -171,7 +180,6 @@
 
       currentData.push(newItem);
 
-      // 4. Envoyer à GitHub
       const updatedContentBase64 = utf8_to_b64(JSON.stringify(currentData, null, 2));
 
       const putBody = {
@@ -179,9 +187,7 @@
         content: updatedContentBase64
       };
       
-      if (sha) {
-        putBody.sha = sha;
-      }
+      if (sha) putBody.sha = sha;
 
       const putRes = await fetch(apiUrl, {
         method: "PUT",
@@ -193,18 +199,18 @@
       });
 
       if (putRes.ok) {
-        showStatus(" Başarıyla yüklendi! (Ajouté avec succès ! Le site se mettra à jour dans 1-2 min)", "success");
+        showStatus(" Başarıyla yüklendi! (Ajouté avec succès !)", "success");
         document.getElementById('titleInput').value = '';
         document.getElementById('imageInput').value = '';
         document.getElementById('newTabInput').value = '';
         loadExistingTabs();
       } else {
         const errorData = await putRes.json();
-        showStatus("GitHub Hata: " + (errorData.message || "Bilinmeyen hata"), "error");
+        showStatus("GitHub Hata: " + (errorData.message || "Erreur"), "error");
       }
 
     } catch (err) {
-      showStatus("Hata (Erreur) : " + err.message, "error");
+      showStatus("Hata : " + err.message, "error");
     } finally {
       submitBtn.disabled = false;
     }
