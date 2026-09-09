@@ -39,7 +39,6 @@
   <div class="form-group">
     <label>Kategori Seç (Onglet) :</label>
     <select id="tabSelect" onchange="toggleNewTabInput(this.value)">
-      <!-- Les 3 onglets par défaut du site -->
       <option value="Sultan Vahidettin Gerçekleri">Sultan Vahidettin Gerçekleri</option>
       <option value="Kemalist Rejimi Gerçekleri">Kemalist Rejimi Gerçekleri</option>
       <option value="Sultan 2. Abdülhamid Gerçekleri">Sultan 2. Abdülhamid Gerçekleri</option>
@@ -54,7 +53,6 @@
 
   <div class="form-group">
     <label>Fotoğraf Seç (Image / Screenshot) :</label>
-    <!-- accept="image/*" permet de capturer n'importe quel format (PNG, JPG, Screenshots, etc.) -->
     <input type="file" id="imageInput" accept="image/*">
   </div>
 
@@ -68,49 +66,28 @@
   const REPO = "Tarih";
   const JSON_PATH = "data.json";
 
-  // Sauvegarde automatique du Token dans le navigateur
   document.getElementById('tokenInput').value = localStorage.getItem('my_gh_token') || '';
   document.getElementById('tokenInput').addEventListener('input', (e) => {
     localStorage.setItem('my_gh_token', e.target.value.trim());
   });
 
-  // UTF-8 sécurisé
-  function utf8_to_b64(str) {
-    return window.btoa(unescape(encodeURIComponent(str)));
-  }
-
-  function b64_to_utf8(str) {
-    return decodeURIComponent(escape(window.atob(str)));
-  }
-
-  // Charger d'éventuels onglets personnalisés créés précédemment
-  async function loadExistingTabs() {
-    try {
-      const res = await fetch(`https://raw.githubusercontent.com/${USERNAME}/${REPO}/main/${JSON_PATH}?t=${Date.now()}`);
-      if (!res.ok) return;
-
-      const data = await res.json();
-      if (!Array.isArray(data)) return;
-      
-      const defaultTabs = [
-        "Sultan Vahidettin Gerçekleri",
-        "Kemalist Rejimi Gerçekleri",
-        "Sultan 2. Abdülhamid Gerçekleri"
-      ];
-
-      const customTabs = [...new Set(data.map(item => item.onglet).filter(o => o && !defaultTabs.includes(o)))];
-      const select = document.getElementById('tabSelect');
-
-      // Ajouter les onglets créés plus tard
-      customTabs.forEach(tab => {
-        const opt = document.createElement('option');
-        opt.value = tab;
-        opt.innerText = tab;
-        select.insertBefore(opt, select.querySelector('option[value="__NEW__"]'));
-      });
-    } catch (e) {
-      console.log("Aucun onglet supplémentaire trouvé.");
+  // Conversion Base64/UTF-8 moderne (fix iOS/Safari)
+  function stringToBase64(str) {
+    const bytes = new TextEncoder().encode(str);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
     }
+    return window.btoa(binary);
+  }
+
+  function base64ToString(b64) {
+    const binary = window.atob(b64.replace(/\s/g, ''));
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new TextDecoder().decode(bytes);
   }
 
   function toggleNewTabInput(value) {
@@ -137,12 +114,12 @@
     const onglet = (selectValue === '__NEW__') ? newTab : selectValue;
 
     if (!token) {
-      showStatus("Lütfen GitHub Tokeninizi girin! (Token manquant)", "error");
+      showStatus("Lütfen GitHub Tokeninizi girin!", "error");
       return;
     }
 
     if (!title || !onglet || !imageFile) {
-      showStatus("Lütfen tüm alanları doldurun! (Veuillez tout remplir)", "error");
+      showStatus("Lütfen tüm alanları doldurun!", "error");
       return;
     }
 
@@ -150,13 +127,14 @@
     showStatus("Fotoğraf işleniyor ve GitHub'a yükleniyor...", "info");
 
     try {
-      // Conversion n'importe quel format (Screenshots y compris) en Base64
       const imageBase64 = await fileToBase64(imageFile);
-
       const apiUrl = `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${JSON_PATH}`;
-      
+
       const getRes = await fetch(apiUrl, {
-        headers: { "Authorization": `token ${token}` }
+        headers: { 
+          "Authorization": `token ${token}`,
+          "Accept": "application/vnd.github.v3+json"
+        }
       });
 
       let currentData = [];
@@ -165,10 +143,12 @@
       if (getRes.status === 200) {
         const fileInfo = await getRes.json();
         sha = fileInfo.sha;
-        const decodedContent = b64_to_utf8(fileInfo.content.replace(/\n/g, ''));
+        const decodedContent = base64ToString(fileInfo.content);
         currentData = JSON.parse(decodedContent);
       } else if (getRes.status === 401) {
-        throw new Error("Bad credentials: Token geçersiz.");
+        throw new Error("Token incorrect ou expiré (Bad credentials)");
+      } else if (getRes.status !== 404) {
+        throw new Error(`Erreur HTTP GitHub: ${getRes.status}`);
       }
 
       const newItem = {
@@ -180,7 +160,7 @@
 
       currentData.push(newItem);
 
-      const updatedContentBase64 = utf8_to_b64(JSON.stringify(currentData, null, 2));
+      const updatedContentBase64 = stringToBase64(JSON.stringify(currentData, null, 2));
 
       const putBody = {
         message: `Yeni arşiv eklendi: ${title}`,
@@ -193,24 +173,24 @@
         method: "PUT",
         headers: {
           "Authorization": `token ${token}`,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Accept": "application/vnd.github.v3+json"
         },
         body: JSON.stringify(putBody)
       });
 
       if (putRes.ok) {
-        showStatus(" Başarıyla yüklendi! (Ajouté avec succès !)", "success");
+        showStatus("Başarıyla yüklendi!", "success");
         document.getElementById('titleInput').value = '';
         document.getElementById('imageInput').value = '';
         document.getElementById('newTabInput').value = '';
-        loadExistingTabs();
       } else {
         const errorData = await putRes.json();
-        showStatus("GitHub Hata: " + (errorData.message || "Erreur"), "error");
+        showStatus("GitHub Hata: " + (errorData.message || "Erreur inconnue"), "error");
       }
 
     } catch (err) {
-      showStatus("Hata : " + err.message, "error");
+      showStatus("Hata: " + err.message, "error");
     } finally {
       submitBtn.disabled = false;
     }
@@ -222,8 +202,6 @@
     statusDiv.className = type;
     statusDiv.innerText = msg;
   }
-
-  window.addEventListener('DOMContentLoaded', loadExistingTabs);
 </script>
 
 </body>
