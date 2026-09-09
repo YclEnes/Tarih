@@ -240,8 +240,6 @@
             margin: 1.5rem 0 0.8rem;
         }
 
-        /* ── IMAGES INSIDE CONTENT TEXT ── */
-        /* width:100% force toutes les images (y compris les .png) à occuper toute la largeur */
         .content-text img {
             width: 100%;
             max-width: 100%;
@@ -252,7 +250,6 @@
             object-fit: contain;
         }
 
-        /* Side-by-side images → stacked on small screens */
         .img-row {
             display: flex;
             flex-wrap: wrap;
@@ -264,7 +261,6 @@
             max-width: 100%;
         }
 
-        /* ── IFRAMES ── */
         .content-text iframe {
             width: 100% !important;
             max-width: 100%;
@@ -275,7 +271,13 @@
             margin: 0.8rem 0;
         }
 
-        /* ── BACK BUTTON ── */
+        /* ── DYNAMIC ARCHIVES ITEM ── */
+        .dynamic-item {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px dashed rgba(255,215,0,0.3);
+        }
+
         .back-button {
             display: inline-block;
             margin-top: 2rem;
@@ -299,7 +301,6 @@
             box-shadow: 0 8px 30px rgba(255,215,0,0.5);
         }
 
-        /* ── SCROLLBAR ── */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0a0a0a; }
         ::-webkit-scrollbar-thumb {
@@ -307,18 +308,9 @@
             border-radius: 5px;
         }
 
-        /* ══════════════════════════════════
-           RESPONSIVE — MOBILE
-        ══════════════════════════════════ */
         @media (max-width: 768px) {
-
-            .nav-container {
-                flex-wrap: nowrap;
-                justify-content: space-between;
-            }
-
+            .nav-container { flex-wrap: nowrap; justify-content: space-between; }
             .hamburger { display: flex; }
-
             .nav-links {
                 display: none;
                 flex-direction: column;
@@ -328,28 +320,13 @@
                 border-top: 1px solid rgba(255,215,0,0.15);
                 margin-top: 0.8rem;
             }
-
             .nav-links.open { display: flex; }
-
-            .nav-container.menu-open {
-                flex-wrap: wrap;
-            }
-
-            .nav-link {
-                width: 100%;
-                text-align: center;
-                font-size: 1rem;
-                padding: 0.8rem 1rem;
-                white-space: normal;
-            }
-
+            .nav-container.menu-open { flex-wrap: wrap; }
+            .nav-link { width: 100%; text-align: center; font-size: 1rem; padding: 0.8rem 1rem; white-space: normal; }
             .hero { padding: 2rem 1.2rem; }
-
             .content-card { padding: 1.5rem 1rem; }
-
             .content-image { flex-direction: column; }
             .content-image img { max-width: 100%; }
-
             .content-text iframe { height: 300px; }
         }
 
@@ -374,7 +351,7 @@
         </div>
     </nav>
 
-    <div class="container">
+    <div class="container" id="mainContainer">
 
         <!-- Ana Sayfa -->
         <div id="home" class="page active">
@@ -400,7 +377,7 @@
                     <img src="Vahidettin.jpg" alt="Sultan Vahidettin">
                 </div>
 
-                <div class="content-text">
+                <div class="content-text" id="dynamic-vahidettin">
                     <p>
                         Sultan Vahidettin, Osmanlı İmparatorluğu'nun 36. ve son padişahıdır. 1918-1922 yılları arasında tahtta kalmış
                         ve tarihin en zorlu dönemlerinden birinde imparatorluğu yönetmiştir.
@@ -451,7 +428,7 @@
                     <img src="kamal.jpg" alt="Kemal Paşa">
                 </div>
 
-                <div class="content-text">
+                <div class="content-text" id="dynamic-kemalist">
                     <p>
                         Türkiye Cumhuriyeti'nin kuruluş dönemi ve sonrasında yapılan reformlar, toplumda köklü değişikliklere
                         yol açmıştır. Bu dönemde alınan kararlar ve uygulamalar farklı kesimler tarafından farklı şekillerde
@@ -510,7 +487,7 @@
                     <h2>İsmail Yiğit'in Arapça Tekbir Soruşturması (Çankırı/Çerkeş)</h2>
                     <img src="cankirib.png" alt="evrak">
 
-                    <h2>Enver ve Cemal Paşaların ifrat derecede Alman siyaseti gütmelerine karşı milli bir siyaset takip etmek üzere İttihat ve Terakki azası Osmanlı Erkan-ı Harbiyesi subaylarından Mustafa Kemal Paşa'nın başkanlığında yeni bir fırka kurulduğu, Irak ve Sina cephelerinde Osmanlı ordusunun yenilgiye uğramasının Enver ve Cemal paşaların konumlarını sarstığı ve yeni fırkanın idareyi ele almak için müsait bir zaman gözetmekte olduğu ifadelerini havi Mekke'de çıkan el-Kıble gazetesinden naklen La Tribune de Geneve gazetesinin "Enver ve Cemal Paşalar İlk Fırsatta İktidardan Düşecekler" başlıklı makalesi (TC Cumhurbaşkanlığı Devlet Arşivleri)</h2>
+                    <h2>Enver ve Cemal Paşalar Makalesi</h2>
                     <img src="ENVERV~1.JPG" alt="evrak">
 
                     <h2>Arapça Levhaların Dağıtımının Durdurulması (TC Cumhurbaşkanlığı Devlet Arşivleri)</h2>
@@ -557,7 +534,7 @@
                     <img src="Abdülhamid.jpg" alt="Sultan Abdülhamid">
                 </div>
 
-                <div class="content-text">
+                <div class="content-text" id="dynamic-abdulhamid">
                     <p>
                         Sultan 2. Abdülhamid, 1876-1909 yılları arasında 33 yıl tahtta kalmış ve Osmanlı İmparatorluğu'nun
                         en uzun süre hüküm süren padişahlarından biridir. Dönemi, modernleşme çabaları ve zorlu siyasi
@@ -586,12 +563,13 @@
             </div>
         </div>
 
-    </div><!-- /container -->
+    </div>
 
     <script>
         function showPage(pageId) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById(pageId).classList.add('active');
+            const target = document.getElementById(pageId);
+            if (target) target.classList.add('active');
             window.scrollTo({ top: 0, behavior: 'smooth' });
             closeMenu();
         }
@@ -610,6 +588,95 @@
             document.getElementById('navLinks').classList.remove('open');
             document.getElementById('navContainer').classList.remove('menu-open');
         }
+
+        // --- SCRIPT DYNAMIQUE : Charge les nouveautés depuis data.json ---
+        async function loadDynamicArchives() {
+            try {
+                const res = await fetch(`data.json?t=${Date.now()}`);
+                if (!res.ok) return;
+
+                const data = await res.json();
+                if (!Array.isArray(data)) return;
+
+                const navLinks = document.getElementById('navLinks');
+                const mainContainer = document.getElementById('mainContainer');
+
+                // Mapping pour insérer les images dans les 3 onglets existants
+                const existingMap = {
+                    "Sultan Vahidettin Gerçekleri": "dynamic-vahidettin",
+                    "Kemalist Rejimi Gerçekleri": "dynamic-kemalist",
+                    "Sultan 2. Abdülhamid Gerçekleri": "dynamic-abdulhamid"
+                };
+
+                // Regrouper par onglet
+                const grouped = {};
+                data.forEach(item => {
+                    if (!item.onglet) return;
+                    if (!grouped[item.onglet]) grouped[item.onglet] = [];
+                    grouped[item.onglet].push(item);
+                });
+
+                let customCategoryIndex = 0;
+
+                Object.keys(grouped).forEach(ongletName => {
+                    const items = grouped[ongletName];
+
+                    if (existingMap[ongletName]) {
+                        // Ajouter les éléments à la fin de la page existante
+                        const targetDiv = document.getElementById(existingMap[ongletName]);
+                        if (targetDiv) {
+                            items.forEach(item => {
+                                const itemDiv = document.createElement('div');
+                                itemDiv.className = 'dynamic-item';
+                                itemDiv.innerHTML = `
+                                    <h2>${item.titre}</h2>
+                                    ${item.image ? `<div class="content-image"><img src="${item.image}" alt="${item.titre}"></div>` : ''}
+                                `;
+                                targetDiv.appendChild(itemDiv);
+                            });
+                        }
+                    } else {
+                        // Onglet complètement NOUVEAU : créer le bouton + la page dédiée
+                        customCategoryIndex++;
+                        const pageId = 'custom-page-' + customCategoryIndex;
+
+                        // 1. Bouton dans le menu
+                        const a = document.createElement('a');
+                        a.className = 'nav-link';
+                        a.innerText = ongletName;
+                        a.onclick = () => showPage(pageId);
+                        navLinks.appendChild(a);
+
+                        // 2. Contenu de la nouvelle page
+                        let itemsHTML = items.map(item => `
+                            <div class="dynamic-item">
+                                <h2>${item.titre}</h2>
+                                ${item.image ? `<div class="content-image"><img src="${item.image}" alt="${item.titre}"></div>` : ''}
+                            </div>
+                        `).join('');
+
+                        const pageDiv = document.createElement('div');
+                        pageDiv.id = pageId;
+                        pageDiv.className = 'page';
+                        pageDiv.innerHTML = `
+                            <div class="content-card">
+                                <h1>${ongletName}</h1>
+                                <div class="content-text">
+                                    ${itemsHTML}
+                                </div>
+                                <button class="back-button" onclick="showPage('home')">← Ana Sayfaya Dön</button>
+                            </div>
+                        `;
+                        mainContainer.appendChild(pageDiv);
+                    }
+                });
+
+            } catch (err) {
+                console.log("Aucune archive dynamique chargée :", err);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', loadDynamicArchives);
     </script>
 </body>
 </html>
