@@ -23,6 +23,12 @@
 <div class="card">
   <h2>Yeni Arşiv Ekle (Ajouter une Archive)</h2>
 
+  <!-- CHAMP POUR LE TOKEN SISI MANUEL -->
+  <div class="form-group">
+    <label>GitHub Personal Access Token :</label>
+    <input type="password" id="tokenInput" placeholder="ghp_xxxxxxxxxxxx">
+  </div>
+
   <div class="form-group">
     <label>Doküman Başlığı (Titre) :</label>
     <input type="text" id="titleInput" placeholder="Ex: Sultan Vahidettin Belgesi">
@@ -55,13 +61,13 @@
   const REPO = "Tarih";
   const JSON_PATH = "data.json";
 
-  // INSCRIRE VOTRE TOKEN ICI (COUPÉ EN DEUX PARTIES)
-  const TOKEN_PART1 = "ghp_xxxxxxxxxxxx"; // Remplacez par la 1ère partie de votre token
-  const TOKEN_PART2 = "xxxxxxxxxxxx";     // Remplacez par la 2ème partie de votre token
-  
-  const GITHUB_TOKEN = (TOKEN_PART1 + TOKEN_PART2).trim();
+  // Charger automatiquement le token enregistré dans votre navigateur
+  document.getElementById('tokenInput').value = localStorage.getItem('my_gh_token') || '';
+  document.getElementById('tokenInput').addEventListener('input', (e) => {
+    localStorage.setItem('my_gh_token', e.target.value.trim());
+  });
 
-  // Fonctions pour gérer le codage UTF-8 sécurisé (évite les bugs TypeError)
+  // Fonctions pour gérer le codage UTF-8 sécurisé (sans risque de TypeError)
   function utf8_to_b64(str) {
     return window.btoa(unescape(encodeURIComponent(str)));
   }
@@ -110,6 +116,7 @@
   }
 
   async function uploadArchive() {
+    const token = document.getElementById('tokenInput').value.trim();
     const title = document.getElementById('titleInput').value.trim();
     const selectValue = document.getElementById('tabSelect').value;
     const newTab = document.getElementById('newTabInput').value.trim();
@@ -118,13 +125,13 @@
 
     const onglet = (selectValue === '__NEW__') ? newTab : selectValue;
 
-    if (!title || !onglet || !imageFile) {
-      showStatus("Lütfen tüm alanları doldurun! (Veuillez remplir tous les champs)", "error");
+    if (!token) {
+      showStatus("Lütfen GitHub Tokeninizi girin! (Veuillez entrer votre token)", "error");
       return;
     }
 
-    if (!GITHUB_TOKEN || GITHUB_TOKEN.includes("xxxxxxxxxxxx")) {
-      showStatus("Lütfen koddaki TOKEN_PART1 ve TOKEN_PART2 alanlarına geçerli tokeninizi girin!", "error");
+    if (!title || !onglet || !imageFile) {
+      showStatus("Lütfen tüm alanları doldurun! (Veuillez remplir tous les champs)", "error");
       return;
     }
 
@@ -139,7 +146,7 @@
       const apiUrl = `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${JSON_PATH}`;
       
       const getRes = await fetch(apiUrl, {
-        headers: { "Authorization": `token ${GITHUB_TOKEN}` }
+        headers: { "Authorization": `token ${token}` }
       });
 
       let currentData = [];
@@ -173,13 +180,13 @@
       };
       
       if (sha) {
-        putBody.sha = sha; // Nécessaire si le fichier existait déjà
+        putBody.sha = sha;
       }
 
       const putRes = await fetch(apiUrl, {
         method: "PUT",
         headers: {
-          "Authorization": `token ${GITHUB_TOKEN}`,
+          "Authorization": `token ${token}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify(putBody)
