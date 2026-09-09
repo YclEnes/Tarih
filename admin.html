@@ -2,33 +2,31 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Admin - Arşiv Ekle</title>
   <style>
-    body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; background: #0f0f0f; color: #e0e0e0; }
-    .card { background: #1a1a1a; padding: 25px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.5); border: 1px solid rgba(255, 215, 0, 0.2); }
-    h2 { color: #ffd700; margin-bottom: 20px; text-align: center; }
-    .form-group { margin-bottom: 18px; }
-    label { display: block; font-weight: bold; margin-bottom: 8px; color: #d4d4d4; }
-    input, select, button { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,215,0,0.2); background: #2a2a2a; color: #fff; box-sizing: border-box; font-size: 1rem; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 15px auto; padding: 15px; background: #0f0f0f; color: #fff; }
+    .card { background: #1a1a1a; padding: 20px; border-radius: 12px; border: 1px solid #ffd700; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; font-weight: bold; color: #ffd700; font-size: 0.95rem; }
+    input, select, button { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; font-size: 16px; box-sizing: border-box; }
     input:focus, select:focus { border-color: #ffd700; outline: none; }
-    button { background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); color: #000; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; transition: transform 0.2s; }
-    button:active { transform: scale(0.98); }
+    button { background: #ffd700; color: #000; font-weight: bold; border: none; margin-top: 10px; cursor: pointer; padding: 14px; font-size: 1rem; }
     button:disabled { background: #555; color: #888; cursor: not-allowed; }
-    #status { margin-top: 15px; padding: 12px; border-radius: 8px; display: none; font-weight: bold; word-break: break-word; text-align: center; }
-    .success { background: rgba(40, 167, 69, 0.2); color: #28a745; border: 1px solid #28a745; }
-    .error { background: rgba(220, 53, 69, 0.2); color: #dc3545; border: 1px solid #dc3545; }
-    .info { background: rgba(0, 123, 255, 0.2); color: #17a2b8; border: 1px solid #17a2b8; }
+    #status { margin-top: 15px; padding: 12px; border-radius: 8px; display: none; word-break: break-all; font-size: 14px; text-align: center; }
+    .error { background: rgba(220, 53, 69, 0.3); color: #ff8888; border: 1px solid #dc3545; }
+    .success { background: rgba(40, 167, 69, 0.3); color: #88ff88; border: 1px solid #28a745; }
+    .info { background: rgba(0, 123, 255, 0.3); color: #8888ff; border: 1px solid #17a2b8; }
   </style>
 </head>
 <body>
 
 <div class="card">
-  <h2>Yeni Arşiv Ekle</h2>
+  <h2 style="text-align:center; color:#ffd700; margin-top:0;">Yeni Arşiv Ekle</h2>
 
   <div class="form-group">
     <label>GitHub Personal Access Token :</label>
-    <input type="password" id="tokenInput" placeholder="ghp_xxxxxxxxxxxx">
+    <input type="password" id="tokenInput" placeholder="ghp_..." autocomplete="off">
   </div>
 
   <div class="form-group">
@@ -37,28 +35,26 @@
   </div>
 
   <div class="form-group">
-    <label>Kategori Seç (Onglet) :</label>
-    <select id="tabSelect" onchange="toggleNewTabInput(this.value)">
-      <!-- Les 3 onglets par défaut du site -->
+    <label>Kategori (Onglet) :</label>
+    <select id="tabSelect" onchange="toggleNewTab(this.value)">
       <option value="Sultan Vahidettin Gerçekleri">Sultan Vahidettin Gerçekleri</option>
       <option value="Kemalist Rejimi Gerçekleri">Kemalist Rejimi Gerçekleri</option>
       <option value="Sultan 2. Abdülhamid Gerçekleri">Sultan 2. Abdülhamid Gerçekleri</option>
-      <option value="__NEW__">+ Yeni Kategori Oluştur... (Créer nouvel onglet)</option>
+      <option value="__NEW__">+ Yeni Kategori Oluştur...</option>
     </select>
   </div>
 
   <div class="form-group" id="newTabGroup" style="display: none;">
-    <label>Yeni Kategori Adı (Nom du nouvel onglet) :</label>
+    <label>Yeni Kategori Adı :</label>
     <input type="text" id="newTabInput" placeholder="Ex: Osmanlı Arşivleri">
   </div>
 
   <div class="form-group">
-    <label>Fotoğraf Seç (Image / Screenshot) :</label>
-    <!-- accept="image/*" permet de capturer n'importe quel format (PNG, JPG, Screenshots, etc.) -->
+    <label>Fotoğraf Seç :</label>
     <input type="file" id="imageInput" accept="image/*">
   </div>
 
-  <button id="submitBtn" onclick="uploadArchive()">GitHub'a Gönder (Publier)</button>
+  <button type="button" id="submitBtn" onclick="uploadArchive()">GitHub'a Gönder</button>
 
   <div id="status"></div>
 </div>
@@ -68,162 +64,159 @@
   const REPO = "Tarih";
   const JSON_PATH = "data.json";
 
-  // Sauvegarde automatique du Token dans le navigateur
-  document.getElementById('tokenInput').value = localStorage.getItem('my_gh_token') || '';
-  document.getElementById('tokenInput').addEventListener('input', (e) => {
-    localStorage.setItem('my_gh_token', e.target.value.trim());
-  });
+  const tokenInput = document.getElementById('tokenInput');
+  try {
+    tokenInput.value = localStorage.getItem('my_gh_token') || '';
+    tokenInput.addEventListener('input', () => {
+      try { localStorage.setItem('my_gh_token', tokenInput.value.trim()); } catch(e){}
+    });
+  } catch(e) {}
 
-  // UTF-8 sécurisé
-  function utf8_to_b64(str) {
-    return window.btoa(unescape(encodeURIComponent(str)));
+  function toggleNewTab(val) {
+    document.getElementById('newTabGroup').style.display = (val === '__NEW__') ? 'block' : 'none';
   }
 
-  function b64_to_utf8(str) {
-    return decodeURIComponent(escape(window.atob(str)));
+  function showStatus(msg, type) {
+    const s = document.getElementById('status');
+    s.style.display = 'block';
+    s.className = type;
+    s.innerText = msg;
   }
 
-  // Charger d'éventuels onglets personnalisés créés précédemment
-  async function loadExistingTabs() {
-    try {
-      const res = await fetch(`https://raw.githubusercontent.com/${USERNAME}/${REPO}/main/${JSON_PATH}?t=${Date.now()}`);
-      if (!res.ok) return;
-
-      const data = await res.json();
-      if (!Array.isArray(data)) return;
-      
-      const defaultTabs = [
-        "Sultan Vahidettin Gerçekleri",
-        "Kemalist Rejimi Gerçekleri",
-        "Sultan 2. Abdülhamid Gerçekleri"
-      ];
-
-      const customTabs = [...new Set(data.map(item => item.onglet).filter(o => o && !defaultTabs.includes(o)))];
-      const select = document.getElementById('tabSelect');
-
-      // Ajouter les onglets créés plus tard
-      customTabs.forEach(tab => {
-        const opt = document.createElement('option');
-        opt.value = tab;
-        opt.innerText = tab;
-        select.insertBefore(opt, select.querySelector('option[value="__NEW__"]'));
-      });
-    } catch (e) {
-      console.log("Aucun onglet supplémentaire trouvé.");
-    }
+  // Fonctions UTF-8 universelles compatibles iOS et PC
+  function stringToBase64(str) {
+    const bytes = new TextEncoder().encode(str);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    return window.btoa(binary);
   }
 
-  function toggleNewTabInput(value) {
-    document.getElementById('newTabGroup').style.display = (value === '__NEW__') ? 'block' : 'none';
+  function base64ToString(b64) {
+    const binary = window.atob(b64.replace(/\s/g, ''));
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
   }
 
-  function fileToBase64(file) {
+  // Compression légère de l'image pour un stockage propre dans data.json
+  function compressImageToBase64(file, maxDimension = 1200) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height * maxDimension) / width);
+              width = maxDimension;
+            } else {
+              width = Math.round((width * maxDimension) / height);
+              height = maxDimension;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Renvoie directement le dataURL complet (data:image/jpeg;base64,...)
+          resolve(canvas.toDataURL('image/jpeg', 0.75));
+        };
+        img.onerror = () => reject(new Error("Görsel işlenemedi"));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error("Dosya okunamadı"));
       reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = error => reject(error);
     });
   }
 
   async function uploadArchive() {
-    const token = document.getElementById('tokenInput').value.trim();
-    const title = document.getElementById('titleInput').value.trim();
-    const selectValue = document.getElementById('tabSelect').value;
-    const newTab = document.getElementById('newTabInput').value.trim();
-    const imageFile = document.getElementById('imageInput').files[0];
-    const submitBtn = document.getElementById('submitBtn');
-
-    const onglet = (selectValue === '__NEW__') ? newTab : selectValue;
-
-    if (!token) {
-      showStatus("Lütfen GitHub Tokeninizi girin! (Token manquant)", "error");
-      return;
-    }
-
-    if (!title || !onglet || !imageFile) {
-      showStatus("Lütfen tüm alanları doldurun! (Veuillez tout remplir)", "error");
-      return;
-    }
-
-    submitBtn.disabled = true;
-    showStatus("Fotoğraf işleniyor ve GitHub'a yükleniyor...", "info");
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
 
     try {
-      // Conversion n'importe quel format (Screenshots y compris) en Base64
-      const imageBase64 = await fileToBase64(imageFile);
+      const token = tokenInput.value.trim();
+      const title = document.getElementById('titleInput').value.trim();
+      const selectVal = document.getElementById('tabSelect').value;
+      const newTab = document.getElementById('newTabInput').value.trim();
+      const fileEl = document.getElementById('imageInput');
+      const file = (fileEl.files && fileEl.files.length > 0) ? fileEl.files[0] : null;
 
-      const apiUrl = `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${JSON_PATH}`;
-      
-      const getRes = await fetch(apiUrl, {
-        headers: { "Authorization": `token ${token}` }
+      const onglet = (selectVal === '__NEW__') ? newTab : selectVal;
+
+      if (!token) { showStatus("Token giriniz!", "error"); btn.disabled = false; return; }
+      if (!title) { showStatus("Başlık giriniz!", "error"); btn.disabled = false; return; }
+      if (!onglet) { showStatus("Kategori seçiniz!", "error"); btn.disabled = false; return; }
+      if (!file) { showStatus("Fotoğraf seçiniz!", "error"); btn.disabled = false; return; }
+
+      showStatus("Fotoğraf işleniyor ve sıkıştırılıyor...", "info");
+      const base64DataUrl = await compressImageToBase64(file);
+
+      showStatus("GitHub'a bağlanılıyor...", "info");
+      const jsonUrl = `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${JSON_PATH}`;
+
+      const getJson = await fetch(jsonUrl, {
+        headers: { "Authorization": `Bearer ${token}` }
       });
 
       let currentData = [];
       let sha = "";
 
-      if (getRes.status === 200) {
-        const fileInfo = await getRes.json();
-        sha = fileInfo.sha;
-        const decodedContent = b64_to_utf8(fileInfo.content.replace(/\n/g, ''));
-        currentData = JSON.parse(decodedContent);
-      } else if (getRes.status === 401) {
-        throw new Error("Bad credentials: Token geçersiz.");
+      if (getJson.ok) {
+        const jsonInfo = await getJson.json();
+        sha = jsonInfo.sha;
+        const textContent = base64ToString(jsonInfo.content);
+        if (textContent.trim().length > 0) {
+          currentData = JSON.parse(textContent);
+        }
       }
 
-      const newItem = {
+      // Ajout de l'objet avec l'image en Base64 brute
+      currentData.push({
         id: Date.now(),
         titre: title,
-        image: imageBase64,
+        image: base64DataUrl,
         onglet: onglet
-      };
-
-      currentData.push(newItem);
-
-      const updatedContentBase64 = utf8_to_b64(JSON.stringify(currentData, null, 2));
-
-      const putBody = {
-        message: `Yeni arşiv eklendi: ${title}`,
-        content: updatedContentBase64
-      };
-      
-      if (sha) putBody.sha = sha;
-
-      const putRes = await fetch(apiUrl, {
-        method: "PUT",
-        headers: {
-          "Authorization": `token ${token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(putBody)
       });
 
-      if (putRes.ok) {
-        showStatus(" Başarıyla yüklendi! (Ajouté avec succès !)", "success");
+      showStatus("data.json güncelleniyor...", "info");
+
+      const updatedText = JSON.stringify(currentData, null, 2);
+      const updatedBase64 = stringToBase64(updatedText);
+
+      const putJson = await fetch(jsonUrl, {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          message: `Yeni arşiv eklendi: ${title}`,
+          content: updatedBase64,
+          sha: sha || undefined
+        })
+      });
+
+      if (putJson.ok) {
+        showStatus(" Başarıyla yüklendi!", "success");
         document.getElementById('titleInput').value = '';
-        document.getElementById('imageInput').value = '';
-        document.getElementById('newTabInput').value = '';
-        loadExistingTabs();
+        fileEl.value = '';
       } else {
-        const errorData = await putRes.json();
-        showStatus("GitHub Hata: " + (errorData.message || "Erreur"), "error");
+        const err = await putJson.json();
+        throw new Error("GitHub Hata: " + err.message);
       }
 
     } catch (err) {
-      showStatus("Hata : " + err.message, "error");
+      showStatus("Hata: " + (err.message || err), "error");
     } finally {
-      submitBtn.disabled = false;
+      btn.disabled = false;
     }
   }
-
-  function showStatus(msg, type) {
-    const statusDiv = document.getElementById('status');
-    statusDiv.style.display = 'block';
-    statusDiv.className = type;
-    statusDiv.innerText = msg;
-  }
-
-  window.addEventListener('DOMContentLoaded', loadExistingTabs);
 </script>
 
 </body>
