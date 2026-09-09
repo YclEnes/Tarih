@@ -2,32 +2,29 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin - Arşiv Ekle</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 15px auto; padding: 15px; background: #0f0f0f; color: #e0e0e0; }
-    .card { background: #1a1a1a; padding: 20px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.5); border: 1px solid rgba(255, 215, 0, 0.2); }
-    h2 { color: #ffd700; margin-bottom: 20px; text-align: center; font-size: 1.4rem; }
+    body { font-family: -apple-system, sans-serif; max-width: 500px; margin: 20px auto; padding: 15px; background: #0f0f0f; color: #fff; }
+    .card { background: #1a1a1a; padding: 20px; border-radius: 12px; border: 1px solid #ffd700; }
     .form-group { margin-bottom: 15px; }
-    label { display: block; font-weight: bold; margin-bottom: 6px; color: #d4d4d4; font-size: 0.95rem; }
-    input, select, button { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,215,0,0.2); background: #2a2a2a; color: #fff; box-sizing: border-box; font-size: 1rem; -webkit-appearance: none; }
-    input:focus, select:focus { border-color: #ffd700; outline: none; }
-    button { background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); color: #000; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; padding: 14px; font-size: 1.05rem; }
-    button:disabled { background: #555; color: #888; cursor: not-allowed; }
-    #status { margin-top: 15px; padding: 12px; border-radius: 8px; display: none; font-weight: bold; word-break: break-word; text-align: center; font-size: 0.95rem; }
-    .success { background: rgba(40, 167, 69, 0.2); color: #28a745; border: 1px solid #28a745; }
-    .error { background: rgba(220, 53, 69, 0.2); color: #dc3545; border: 1px solid #dc3545; }
-    .info { background: rgba(0, 123, 255, 0.2); color: #17a2b8; border: 1px solid #17a2b8; }
+    label { display: block; margin-bottom: 5px; font-weight: bold; color: #ffd700; }
+    input, select, button { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #222; color: #fff; font-size: 16px; box-sizing: border-box; }
+    button { background: #ffd700; color: #000; font-weight: bold; border: none; margin-top: 10px; cursor: pointer; }
+    #status { margin-top: 15px; padding: 10px; border-radius: 8px; display: none; word-break: break-all; font-size: 14px; text-align: center; }
+    .error { background: #500; color: #f88; }
+    .success { background: #050; color: #8f8; }
+    .info { background: #005; color: #88f; }
   </style>
 </head>
 <body>
 
 <div class="card">
-  <h2>Yeni Arşiv Ekle</h2>
+  <h2 style="text-align:center; color:#ffd700;">Yeni Arşiv Ekle</h2>
 
   <div class="form-group">
     <label>GitHub Personal Access Token :</label>
-    <input type="password" id="tokenInput" placeholder="ghp_xxxxxxxxxxxx" autocomplete="off" autocapitalize="off">
+    <input type="password" id="tokenInput" placeholder="ghp_..." autocomplete="off">
   </div>
 
   <div class="form-group">
@@ -36,8 +33,8 @@
   </div>
 
   <div class="form-group">
-    <label>Kategori Seç (Onglet) :</label>
-    <select id="tabSelect" onchange="toggleNewTabInput(this.value)">
+    <label>Kategori (Onglet) :</label>
+    <select id="tabSelect" onchange="document.getElementById('newTabGroup').style.display = (this.value === '__NEW__') ? 'block' : 'none'">
       <option value="Sultan Vahidettin Gerçekleri">Sultan Vahidettin Gerçekleri</option>
       <option value="Kemalist Rejimi Gerçekleri">Kemalist Rejimi Gerçekleri</option>
       <option value="Sultan 2. Abdülhamid Gerçekleri">Sultan 2. Abdülhamid Gerçekleri</option>
@@ -51,7 +48,7 @@
   </div>
 
   <div class="form-group">
-    <label>Fotoğraf Seç (Photo / Screenshot) :</label>
+    <label>Fotoğraf Seç :</label>
     <input type="file" id="imageInput" accept="image/*">
   </div>
 
@@ -65,178 +62,133 @@
   const REPO = "Tarih";
   const JSON_PATH = "data.json";
 
-  document.getElementById('tokenInput').value = localStorage.getItem('my_gh_token') || '';
-  document.getElementById('tokenInput').addEventListener('input', (e) => {
-    localStorage.setItem('my_gh_token', e.target.value.trim());
-  });
+  // Sauvegarde le token
+  const tokenEl = document.getElementById('tokenInput');
+  tokenEl.value = localStorage.getItem('my_gh_token') || '';
+  tokenEl.addEventListener('change', () => localStorage.setItem('my_gh_token', tokenEl.value.trim()));
 
-  function toggleNewTabInput(value) {
-    document.getElementById('newTabGroup').style.display = (value === '__NEW__') ? 'block' : 'none';
+  function showStatus(msg, type) {
+    const s = document.getElementById('status');
+    s.style.display = 'block';
+    s.className = type;
+    s.innerText = msg;
   }
 
-  // Compression légere iOS via Canvas
-  function processImageIOS(file) {
+  // Convertit l'image en base64 de manière simple
+  function fileToBase64(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          const maxDim = 1600;
-
-          if (width > maxDim || height > maxDim) {
-            if (width > height) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            } else {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-
-          // Extraction base64 pure sans le header data:image
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-          const rawBase64 = dataUrl.split(',')[1];
-          resolve(rawBase64);
-        };
-        img.onerror = () => reject(new Error("Görsel okunamadı"));
-        img.src = e.target.result;
+      reader.onload = () => {
+        const result = reader.result.split(',')[1];
+        resolve(result);
       };
-      reader.onerror = () => reject(new Error("Dosya yüklenemedi"));
+      reader.onerror = (e) => reject(e);
       reader.readAsDataURL(file);
     });
   }
 
-  // Conversion UTF-8
-  function stringToBase64(str) {
-    const bytes = new TextEncoder().encode(str);
-    let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return window.btoa(binary);
-  }
-
-  function base64ToString(b64) {
-    const binary = window.atob(b64.replace(/\s/g, ''));
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    return new TextDecoder().decode(bytes);
-  }
-
   async function uploadArchive() {
-    const token = document.getElementById('tokenInput').value.trim();
+    const token = tokenEl.value.trim();
     const title = document.getElementById('titleInput').value.trim();
-    const selectValue = document.getElementById('tabSelect').value;
+    const selectVal = document.getElementById('tabSelect').value;
     const newTab = document.getElementById('newTabInput').value.trim();
-    const imageFile = document.getElementById('imageInput').files[0];
-    const submitBtn = document.getElementById('submitBtn');
+    const fileInput = document.getElementById('imageInput');
+    const file = fileInput.files[0];
 
-    const onglet = (selectValue === '__NEW__') ? newTab : selectValue;
+    const onglet = (selectVal === '__NEW__') ? newTab : selectVal;
 
-    if (!token) { showStatus("Token giriniz!", "error"); return; }
-    if (!title || !onglet || !imageFile) { showStatus("Tüm alanları doldurunuz!", "error"); return; }
+    // Vérifications de base
+    if (!token) { showStatus("Lütfen GitHub Token giriniz!", "error"); return; }
+    if (!title) { showStatus("Lütfen bir başlık giriniz!", "error"); return; }
+    if (!onglet) { showStatus("Lütfen bir kategori seçiniz!", "error"); return; }
+    if (!file) { showStatus("Lütfen bir fotoğraf seçiniz!", "error"); return; }
 
-    submitBtn.disabled = true;
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
 
     try {
-      // Step 1: Traitement image
-      showStatus("1/3 Fotoğraf hazırlanıyor...", "info");
-      const base64ImageContent = await processImageIOS(imageFile);
+      showStatus("1/3 Fotoğraf okunuyor...", "info");
+      const base64Image = await fileToBase64(file);
 
-      // Step 2: Upload de la photo dans le dossier images/ sur GitHub
+      // 1. Upload de l'image dans images/
       showStatus("2/3 Fotoğraf GitHub'a yükleniyor...", "info");
-      const filename = `images/${Date.now()}.jpg`;
-      const imgApiUrl = `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${filename}`;
-
-      const imgPutRes = await fetch(imgApiUrl, {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const imagePath = `images/${Date.now()}.${ext}`;
+      
+      const imgRes = await fetch(`https://api.github.com/repos/${USERNAME}/${REPO}/contents/${imagePath}`, {
         method: "PUT",
         headers: {
-          "Authorization": `token ${token}`,
+          "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          message: `Fotoğraf eklendi: ${title}`,
-          content: base64ImageContent
+          message: `Fotoğraf: ${title}`,
+          content: base64Image
         })
       });
 
-      if (!imgPutRes.ok) {
-        const errJson = await imgPutRes.json();
-        throw new Error("Görsel yükleme hatası: " + (errJson.message || imgPutRes.status));
+      if (!imgRes.ok) {
+        const err = await imgRes.json();
+        throw new Error("Görsel yüklenemedi: " + (err.message || imgRes.status));
       }
 
-      // Step 3: Mise à jour du fichier data.json
+      // 2. Récupération et mise à jour de data.json
       showStatus("3/3 data.json güncelleniyor...", "info");
-      const jsonApiUrl = `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${JSON_PATH}`;
-
-      const getJsonRes = await fetch(jsonApiUrl, {
-        headers: { "Authorization": `token ${token}` }
+      const jsonUrl = `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${JSON_PATH}`;
+      
+      const getJson = await fetch(jsonUrl, {
+        headers: { "Authorization": `Bearer ${token}` }
       });
 
       let currentData = [];
       let sha = "";
 
-      if (getJsonRes.status === 200) {
-        const fileInfo = await getJsonRes.json();
-        sha = fileInfo.sha;
-        currentData = JSON.parse(base64ToString(fileInfo.content));
+      if (getJson.ok) {
+        const jsonInfo = await getJson.json();
+        sha = jsonInfo.sha;
+        // Décodage UTF-8 simple
+        const contentClean = jsonInfo.content.replace(/\s/g, '');
+        const decodedText = decodeURIComponent(escape(atob(contentClean)));
+        currentData = JSON.parse(decodedText);
       }
 
-      // Ajout de la nouvelle entrée avec le chemin de l'image
       currentData.push({
         id: Date.now(),
         titre: title,
-        image: filename,
+        image: imagePath,
         onglet: onglet
       });
 
-      const updatedJsonB64 = stringToBase64(JSON.stringify(currentData, null, 2));
+      const updatedText = JSON.stringify(currentData, null, 2);
+      const updatedBase64 = btoa(unescape(encodeURIComponent(updatedText)));
 
-      const putJsonRes = await fetch(jsonApiUrl, {
+      const putJson = await fetch(jsonUrl, {
         method: "PUT",
         headers: {
-          "Authorization": `token ${token}`,
+          "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
           message: `Arşiv eklendi: ${title}`,
-          content: updatedJsonB64,
+          content: updatedBase64,
           sha: sha || undefined
         })
       });
 
-      if (putJsonRes.ok) {
+      if (putJson.ok) {
         showStatus(" Başarıyla yüklendi!", "success");
         document.getElementById('titleInput').value = '';
-        document.getElementById('imageInput').value = '';
-        document.getElementById('newTabInput').value = '';
+        fileInput.value = '';
       } else {
-        const errJson = await putJsonRes.json();
-        throw new Error("JSON güncellenemedi: " + errJson.message);
+        const err = await putJson.json();
+        throw new Error("JSON hatası: " + err.message);
       }
 
     } catch (err) {
       showStatus("Hata: " + err.message, "error");
     } finally {
-      submitBtn.disabled = false;
+      btn.disabled = false;
     }
-  }
-
-  function showStatus(msg, type) {
-    const statusDiv = document.getElementById('status');
-    statusDiv.style.display = 'block';
-    statusDiv.className = type;
-    statusDiv.innerText = msg;
   }
 </script>
 
