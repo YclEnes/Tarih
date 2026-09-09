@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Arşiv Ekle</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; background: #f4f4f9; }
+    .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; font-weight: bold; margin-bottom: 5px; }
+    input, select, button { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
+    button { background: #28a745; color: white; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; }
+    button:disabled { background: #888; }
+    #status { margin-top: 15px; padding: 10px; border-radius: 5px; display: none; }
+    .success { background: #d4edda; color: #155724; }
+    .error { background: #f8d7da; color: #721c24; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>Yeni Arşiv Ekle (Ajouter une Archive)</h2>
+  
+  <div class="form-group">
+    <label>GitHub Personal Access Token :</label>
+    <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxx">
+    <small>Sauvegardé localement dans votre navigateur pour les prochaines fois.</small>
+  </div>
+
+  <div class="form-group">
+    <label>Titre de l'archive (Titre) :</label>
+    <input type="text" id="titleInput" placeholder="Ex: Sultan Vahidettin Belgesi">
+  </div>
+
+  <div class="form-group">
+    <label>Choisir un Onglet (Onglet) :</label>
+    <select id="tabSelect" onchange="toggleNewTabInput(this.value)">
+      <option value="">Chargement des onglets...</option>
+    </select>
+  </div>
+
+  <div class="form-group" id="newTabGroup" style="display: none;">
+    <label>Nom du nouvel Onglet :</label>
+    <input type="text" id="newTabInput" placeholder="Ex: Yeni Kategori">
+  </div>
+
+  <div class="form-group">
+    <label>Image / Photo :</label>
+    <input type="file" id="imageInput" accept="image/*">
+  </div>
+
+  <button id="submitBtn" onclick="uploadArchive()">Ajouter à GitHub</button>
+
+  <div id="status"></div>
+</div>
+
+<script>
+  const USERNAME = "yclenes";
+  const REPO = "Tarih";
+  const JSON_PATH = "data.json";
+
+  // Sauvegarder/Restaurer le Token GitHub automatiquement
+  document.getElementById('ghToken').value = localStorage.getItem('gh_token') || '';
+  document.getElementById('ghToken').addEventListener('change', (e) => {
+    localStorage.setItem('gh_token', e.target.value);
+  });
+
+  // Charger les onglets existants au démarrage
+  async function loadExistingTabs() {
+    try {
+      const res = await fetch(`https://raw.githubusercontent.com/${USERNAME}/${REPO}/main/${JSON_PATH}?t=${Date.now()}`);
+      const data = await res.json();
+      
+      const tabs = [...new Set(data.map(item => item.onglet))];
+      const select = document.getElementById('tabSelect');
+      
+      select.innerHTML = '<option value="__NEW__">+ Créer un nouvel onglet...</option>';
+      tabs.forEach(tab => {
+        select.innerHTML += `<option value="${tab}">${tab}</option>`;
+      });
+
+      if (tabs.length > 0) {
+        select.value = tabs[0];
+      } else {
+        toggleNewTabInput('__NEW__');
+      }
+    } catch (e) {
+      console.error("Erreur de chargement de data.json :", e);
+      toggleNewTabInput('__NEW__');
+    }
+  }
+
+  function toggleNewTabInput(value) {
+    document.getElementById('newTabGroup').style.display = (value === '__NEW__') ? 'block' : 'none';
+  }
+
+  // Convertir une image en Base64
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
+  }
+
+  // Publier directement sur GitHub via API
+  async function uploadArchive() {
+    const token = document.getElementById('ghToken').value.trim();
+    const title = document.getElementById('titleInput').value.trim();
+    const selectValue = document.getElementById('tabSelect').value;
+    const newTab = document.getElementById('newTabInput').value.trim();
+    const imageFile = document.getElementById('imageInput').files[0];
+    const statusDiv = document.getElementById('status');
+    const submitBtn = document.getElementById('submitBtn');
+
+    const onglet = (selectValue === '__NEW__') ? newTab : selectValue;
+
+    if (!token || !title || !onglet || !imageFile) {
+      showStatus("Veuillez remplir tous les champs !", "error");
+      return;
+    }
+
+    submitBtn.disabled = true;
+    showStatus("Envoi en cours vers GitHub...", "");
+
+    try {
+      // 1. Lire et convertir l'image
+      const imageBase64 = await fileToBase64(imageFile);
+
+      // 2. Télécharger le data.json actuel depuis GitHub API pour obtenir la version exacte et son SHA
+      const apiUrl = `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${JSON_PATH}`;
+      const getRes = await fetch(apiUrl, {
+        headers: { "Authorization": `token ${token}` }
+      });
+
+      let currentData = [];
+      let sha = "";
+
+      if (getRes.ok) {
+        const fileInfo = await getRes.json();
+        sha = fileInfo.sha;
+        // Décoder le JSON UTF-8 depuis base64
+        const decodedContent = decodeURIComponent(escape(atob(fileInfo.content)));
+        currentData = JSON.parse(decodedContent);
+      }
+
+      // 3. Ajouter la nouvelle archive
+      const newItem = {
+        id: Date.now(),
+        titre: title,
+        image: imageBase64, // L'image est sauvegardée sous forme de texte Base64
+        onglet: onglet
+      };
+
+      currentData.push(newItem);
+
+      // 4. Mettre à jour le fichier data.json sur GitHub
+      const updatedContentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(currentData, null, 2))));
+
+      const putRes = await fetch(apiUrl, {
+        method: "PUT",
+        headers: {
+          "Authorization": `token ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          message: `Ajout archive : ${title}`,
+          content: updatedContentBase64,
+          sha: sha
+        })
+      });
+
+      if (putRes.ok) {
+        showStatus(" Archive ajoutée avec succès ! Le site sera mis à jour dans 1-2 minutes.", "success");
+        document.getElementById('titleInput').value = '';
+        document.getElementById('imageInput').value = '';
+        loadExistingTabs();
+      } else {
+        const errorData = await putRes.json();
+        showStatus("Erreur GitHub : " + errorData.message, "error");
+      }
+    } catch (err) {
+      showStatus("Erreur : " + err.message, "error");
+    } finally {
+      submitBtn.disabled = false;
+    }
+  }
+
+  function showStatus(msg, type) {
+    const statusDiv = document.getElementById('status');
+    statusDiv.style.display = 'block';
+    statusDiv.className = type;
+    statusDiv.innerText = msg;
+  }
+
+  window.addEventListener('DOMContentLoaded', loadExistingTabs);
+</script>
+
+</body>
+</html>
