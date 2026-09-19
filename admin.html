@@ -26,7 +26,12 @@
 
   <div class="form-group">
     <label>GitHub Personal Access Token :</label>
-    <input type="password" id="tokenInput" placeholder="ghp_..." autocomplete="off">
+    <input type="password" id="tokenInput" 
+        placeholder="ghp_..." 
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false">
   </div>
 
   <div class="form-group">
@@ -208,7 +213,11 @@
     try {
         showStatus("Étape 1 : lecture des champs...", "info");
 
-        const token = tokenInput.value.trim();
+        const token = tokenInput.value
+          .trim()
+          .replace(/[\u2018\u2019\u201C\u201D]/g, '') // apostrophes typographiques iOS
+          .replace(/\s/g, '')                           // tous les espaces/retours
+          .replace(/[^\x20-\x7E]/g, '');               // tous les caractères non-ASCII
         const title = document.getElementById('titleInput').value.trim();
         const selectVal = document.getElementById('tabSelect').value;
         const newTab = document.getElementById('newTabInput').value.trim();
