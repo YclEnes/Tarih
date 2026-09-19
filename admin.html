@@ -139,27 +139,24 @@
     toggleNewTab(select.value);
   }
 
-  function compressImageToBase64(file, maxDimension = 1200) {
+  function compressImageToBase64(file, maxDimension = 800) {
     return new Promise((resolve, reject) => {
-
-        // Utilise un Blob URL au lieu de readAsDataURL
-        // => évite de charger le fichier entier en Base64 en mémoire sur iOS
         const blobUrl = URL.createObjectURL(file);
-
         const img = new Image();
 
         img.onload = () => {
-            URL.revokeObjectURL(blobUrl); // libère la mémoire immédiatement
+            URL.revokeObjectURL(blobUrl);
 
-            let width  = img.naturalWidth;
-            let height = img.naturalHeight;
+            let width  = img.naturalWidth  || img.width;
+            let height = img.naturalHeight || img.height;
 
+            // Réduction agressive pour iOS
             if (width > maxDimension || height > maxDimension) {
                 if (width > height) {
                     height = Math.round((height * maxDimension) / width);
                     width  = maxDimension;
                 } else {
-                    width  = Math.round((width  * maxDimension) / height);
+                    width  = Math.round((width * maxDimension) / height);
                     height = maxDimension;
                 }
             }
@@ -169,25 +166,41 @@
             canvas.height = height;
 
             const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                reject(new Error("Canvas context null (iOS limite atteinte)"));
+                return;
+            }
+
             ctx.drawImage(img, 0, 0, width, height);
 
-            // qualité 0.70 — bon compromis taille / qualité sur mobile
-            resolve(canvas.toDataURL('image/jpeg', 0.70));
+            let dataUrl;
+            try {
+                dataUrl = canvas.toDataURL('image/jpeg', 0.60);
+            } catch(e) {
+                reject(new Error("toDataURL échoué : " + e.message));
+                return;
+            }
 
-            // Libère le canvas (important sur iOS)
+            // Vérifie que le canvas n'est pas vide
+            if (!dataUrl || dataUrl === 'data:,') {
+                reject(new Error("Canvas vide — image trop lourde pour iOS"));
+                return;
+            }
+
             canvas.width  = 0;
             canvas.height = 0;
+
+            resolve(dataUrl);
         };
 
-        img.onerror = () => {
+        img.onerror = (e) => {
             URL.revokeObjectURL(blobUrl);
-            reject(new Error("Görsel yüklenemedi (iOS hatası)"));
+            reject(new Error("Image non chargée : " + (e.message || "erreur inconnue")));
         };
 
         img.src = blobUrl;
     });
 }
-
   async function uploadArchive() {
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
