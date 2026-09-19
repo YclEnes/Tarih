@@ -206,86 +206,115 @@
     btn.disabled = true;
 
     try {
-      const token = tokenInput.value.trim();
-      const title = document.getElementById('titleInput').value.trim();
-      const selectVal = document.getElementById('tabSelect').value;
-      const newTab = document.getElementById('newTabInput').value.trim();
-      const fileEl = document.getElementById('imageInput');
-      const file = (fileEl.files && fileEl.files.length > 0) ? fileEl.files[0] : null;
+        showStatus("Étape 1 : lecture des champs...", "info");
 
-      const onglet = (selectVal === '__NEW__') ? newTab : selectVal;
+        const token = tokenInput.value.trim();
+        const title = document.getElementById('titleInput').value.trim();
+        const selectVal = document.getElementById('tabSelect').value;
+        const newTab = document.getElementById('newTabInput').value.trim();
+        const fileEl = document.getElementById('imageInput');
+        const file = (fileEl.files && fileEl.files.length > 0) ? fileEl.files[0] : null;
+        const onglet = (selectVal === '__NEW__') ? newTab : selectVal;
 
-      if (!token) { showStatus("Token giriniz!", "error"); btn.disabled = false; return; }
-      if (!title) { showStatus("Başlık giriniz!", "error"); btn.disabled = false; return; }
-      if (!onglet) { showStatus("Kategori seçiniz!", "error"); btn.disabled = false; return; }
-      if (!file) { showStatus("Fotoğraf seçiniz!", "error"); btn.disabled = false; return; }
+        if (!token) { showStatus("Token manquant", "error"); btn.disabled = false; return; }
+        if (!title) { showStatus("Titre manquant", "error"); btn.disabled = false; return; }
+        if (!onglet) { showStatus("Catégorie manquante", "error"); btn.disabled = false; return; }
+        if (!file)  { showStatus("Fichier manquant", "error"); btn.disabled = false; return; }
 
-      showStatus("Fotoğraf işleniyor ve sıkıştırılıyor...", "info");
-      const base64DataUrl = await compressImageToBase64(file);
+        showStatus("Étape 2 : fichier détecté — nom: " + file.name + " | taille: " + Math.round(file.size/1024) + " Ko | type: " + file.type, "info");
 
-      showStatus("GitHub'a bağlanılıyor...", "info");
-      const jsonUrl = `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${JSON_PATH}`;
+        await new Promise(r => setTimeout(r, 800)); // laisse le temps d'afficher
 
-      const getJson = await fetch(jsonUrl, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-
-      let currentData = [];
-      let sha = "";
-
-      if (getJson.ok) {
-        const jsonInfo = await getJson.json();
-        sha = jsonInfo.sha;
-        const textContent = base64ToString(jsonInfo.content);
-        if (textContent.trim().length > 0) {
-          currentData = JSON.parse(textContent);
+        showStatus("Étape 3 : compression image...", "info");
+        let base64DataUrl;
+        try {
+            base64DataUrl = await compressImageToBase64(file);
+            showStatus("Étape 3 OK — taille base64: " + Math.round(base64DataUrl.length/1024) + " Ko", "info");
+        } catch(e) {
+            showStatus("ERREUR étape 3 (compression) : " + e.message, "error");
+            btn.disabled = false;
+            return;
         }
-      }
 
-      currentData.push({
-        id: Date.now(),
-        titre: title,
-        image: base64DataUrl,
-        onglet: onglet
-      });
+        await new Promise(r => setTimeout(r, 800));
 
-      showStatus("data.json güncelleniyor...", "info");
+        showStatus("Étape 4 : connexion GitHub...", "info");
+        const jsonUrl = `https://api.github.com/repos/${USERNAME}/${REPO}/contents/${JSON_PATH}`;
 
-      const updatedText = JSON.stringify(currentData, null, 2);
-      const updatedBase64 = stringToBase64(updatedText);
+        let getJson;
+        try {
+            getJson = await fetch(jsonUrl, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            showStatus("Étape 4 OK — statut HTTP: " + getJson.status, "info");
+        } catch(e) {
+            showStatus("ERREUR étape 4 (fetch GitHub) : " + e.message, "error");
+            btn.disabled = false;
+            return;
+        }
 
-      const putJson = await fetch(jsonUrl, {
-        method: "PUT",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          message: `Yeni arşiv eklendi: ${title}`,
-          content: updatedBase64,
-          sha: sha || undefined
-        })
-      });
+        await new Promise(r => setTimeout(r, 800));
 
-      if (putJson.ok) {
-        showStatus(" Başarıyla yüklendi!", "success");
-        document.getElementById('titleInput').value = '';
-        document.getElementById('newTabInput').value = '';
-        fileEl.value = '';
-        
-        // Recharger la liste des catégories après l'ajout réussi
-        await loadAllCategories();
-      } else {
-        const err = await putJson.json();
-        throw new Error("GitHub Hata: " + err.message);
-      }
+        showStatus("Étape 5 : lecture data.json...", "info");
+        let currentData = [];
+        let sha = "";
+        try {
+            if (getJson.ok) {
+                const jsonInfo = await getJson.json();
+                sha = jsonInfo.sha;
+                const textContent = base64ToString(jsonInfo.content);
+                if (textContent.trim().length > 0) {
+                    currentData = JSON.parse(textContent);
+                }
+            }
+            showStatus("Étape 5 OK — " + currentData.length + " entrées existantes", "info");
+        } catch(e) {
+            showStatus("ERREUR étape 5 (lecture JSON) : " + e.message, "error");
+            btn.disabled = false;
+            return;
+        }
+
+        await new Promise(r => setTimeout(r, 800));
+
+        showStatus("Étape 6 : ajout et envoi...", "info");
+        try {
+            currentData.push({ id: Date.now(), titre: title, image: base64DataUrl, onglet: onglet });
+            const updatedText   = JSON.stringify(currentData, null, 2);
+            const updatedBase64 = stringToBase64(updatedText);
+
+            const putJson = await fetch(jsonUrl, {
+                method: "PUT",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    message: `Yeni arşiv eklendi: ${title}`,
+                    content: updatedBase64,
+                    sha: sha || undefined
+                })
+            });
+
+            if (putJson.ok) {
+                showStatus(" Başarıyla yüklendi!", "success");
+                document.getElementById('titleInput').value = '';
+                document.getElementById('newTabInput').value = '';
+                fileEl.value = '';
+                await loadAllCategories();
+            } else {
+                const err = await putJson.json();
+                showStatus("ERREUR étape 6 (PUT) : " + err.message, "error");
+            }
+        } catch(e) {
+            showStatus("ERREUR étape 6 (envoi) : " + e.message, "error");
+        }
 
     } catch (err) {
-      showStatus("Hata: " + (err.message || err), "error");
+        showStatus("ERREUR GLOBALE : " + (err.message || JSON.stringify(err)), "error");
     } finally {
-      btn.disabled = false;
+        btn.disabled = false;
     }
-  }
+}
 
   // Initialisation au chargement de la page
   window.addEventListener('DOMContentLoaded', loadAllCategories);
